@@ -136,7 +136,93 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await exec(tx);
     }
 
-    // 2. Create storage unit (if needed)
+    // 2. Create dedicated NWN for this user (if storage doesn't exist yet)
+    const nwnItemIdUser = BigInt(600000000) + BigInt(addrNum % 100000000);
+    const userNwnId = deriveId(nwnItemIdUser);
+    let nwnReady = false;
+
+    if (!storExists) {
+      // Check if user's NWN already exists (partial recovery)
+      const nwnObj = await rpcCall("sui_getObject", [userNwnId, { showContent: true }]);
+      if (!nwnObj?.data?.content) {
+        // Create NWN
+        const txN = new Transaction();
+        const [nwn] = txN.moveCall({
+          target: `${pkg}::network_node::anchor`,
+          arguments: [
+            txN.object(OBJECT_REGISTRY), txN.object(characterId), txN.object(ADMIN_ACL),
+            txN.pure.u64(nwnItemIdUser), txN.pure.u64(555n),
+            txN.pure(bcs.vector(bcs.u8()).serialize(locBytes)),
+            txN.pure.u64(10000n), txN.pure.u64(3600000n), txN.pure.u64(200n),
+          ],
+        });
+        txN.moveCall({ target: `${pkg}::network_node::share_network_node`, arguments: [nwn, txN.object(ADMIN_ACL)] });
+        await exec(txN);
+      }
+
+      // Deposit fuel into NWN (need admin as character owner temporarily)
+      const tx3a = new Transaction();
+      tx3a.moveCall({
+        target: `${pkg}::character::update_address`,
+        arguments: [tx3a.object(characterId), tx3a.object(ADMIN_ACL), tx3a.pure.address(adminAddr)],
+      });
+      await exec(tx3a);
+
+      // Find NWN owner cap
+      const nwnCapType = `${pkg}::access::OwnerCap<${pkg}::network_node::NetworkNode>`;
+      const nwnCaps = await rpcCall("suix_getOwnedObjects", [
+        characterId, { filter: { StructType: nwnCapType }, options: { showContent: true } }, null, 5,
+      ]);
+      const nwnCapId = nwnCaps?.data?.[0]?.data?.objectId || "";
+
+      if (nwnCapId) {
+        // Deposit fuel
+        const txF = new Transaction();
+        const [cF, rF] = txF.moveCall({
+          target: `${pkg}::character::borrow_owner_cap`,
+          typeArguments: [`${pkg}::network_node::NetworkNode`],
+          arguments: [txF.object(characterId), txF.object(nwnCapId)],
+        });
+        txF.moveCall({
+          target: `${pkg}::network_node::deposit_fuel`,
+          arguments: [
+            txF.object(userNwnId), txF.object(ADMIN_ACL), cF,
+            txF.pure.u64(78437n), txF.pure.u64(10n), txF.pure.u32(5),
+            txF.object("0x6"),
+          ],
+        });
+        txF.moveCall({
+          target: `${pkg}::character::return_owner_cap`,
+          typeArguments: [`${pkg}::network_node::NetworkNode`],
+          arguments: [txF.object(characterId), cF, rF],
+        });
+        await exec(txF);
+
+        // Online NWN
+        const txO = new Transaction();
+        const [cO, rO] = txO.moveCall({
+          target: `${pkg}::character::borrow_owner_cap`,
+          typeArguments: [`${pkg}::network_node::NetworkNode`],
+          arguments: [txO.object(characterId), txO.object(nwnCapId)],
+        });
+        txO.moveCall({
+          target: `${pkg}::network_node::online`,
+          arguments: [txO.object(userNwnId), cO, txO.object("0x6")],
+        });
+        txO.moveCall({
+          target: `${pkg}::character::return_owner_cap`,
+          typeArguments: [`${pkg}::network_node::NetworkNode`],
+          arguments: [txO.object(characterId), cO, rO],
+        });
+        await exec(txO);
+        nwnReady = true;
+      }
+
+      // Restore character to admin (keep it for remaining steps)
+      // (already admin from tx3a above)
+    }
+
+    // 3. Create storage unit (if needed)
     let storageUnitId = storageIdDerived;
     let ownerCapId = "";
     if (!storExists) {
@@ -144,7 +230,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const [s] = tx.moveCall({
         target: `${pkg}::storage_unit::anchor`,
         arguments: [
-          tx.object(OBJECT_REGISTRY), tx.object(nwnId), tx.object(characterId), tx.object(ADMIN_ACL),
+          tx.object(OBJECT_REGISTRY), tx.object(userNwnId), tx.object(characterId), tx.object(ADMIN_ACL),
           tx.pure.u64(BigInt(storageItemId)), tx.pure.u64(88082n), tx.pure.u64(1000000000000n),
           tx.pure(bcs.vector(bcs.u8()).serialize(locBytes)),
         ],
@@ -171,31 +257,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: "Could not find OwnerCap for storage unit" });
     }
 
-    // 3. Temporarily set character address to admin
-    const tx3 = new Transaction();
-    tx3.moveCall({
-      target: `${pkg}::character::update_address`,
-      arguments: [tx3.object(characterId), tx3.object(ADMIN_ACL), tx3.pure.address(adminAddr)],
-    });
-    await exec(tx3);
+    // 4. Temporarily set character address to admin (if not already done in NWN step)
+    if (storExists) {
+      const tx3 = new Transaction();
+      tx3.moveCall({
+        target: `${pkg}::character::update_address`,
+        arguments: [tx3.object(characterId), tx3.object(ADMIN_ACL), tx3.pure.address(adminAddr)],
+      });
+      await exec(tx3);
+    }
 
-    // 4. Online storage unit
-    const tx4 = new Transaction();
-    const [c4, r4] = tx4.moveCall({
-      target: `${pkg}::character::borrow_owner_cap`,
-      typeArguments: [`${pkg}::storage_unit::StorageUnit`],
-      arguments: [tx4.object(characterId), tx4.object(ownerCapId)],
-    });
-    tx4.moveCall({
-      target: `${pkg}::storage_unit::online`,
-      arguments: [tx4.object(storageUnitId), tx4.object(nwnId), tx4.object(ENERGY_CONFIG), c4],
-    });
-    tx4.moveCall({
-      target: `${pkg}::character::return_owner_cap`,
-      typeArguments: [`${pkg}::storage_unit::StorageUnit`],
-      arguments: [tx4.object(characterId), c4, r4],
-    });
-    await exec(tx4);
+    // 5. Online storage unit
+    if (ownerCapId && nwnReady) {
+      const tx4 = new Transaction();
+      const [c4, r4] = tx4.moveCall({
+        target: `${pkg}::character::borrow_owner_cap`,
+        typeArguments: [`${pkg}::storage_unit::StorageUnit`],
+        arguments: [tx4.object(characterId), tx4.object(ownerCapId)],
+      });
+      tx4.moveCall({
+        target: `${pkg}::storage_unit::online`,
+        arguments: [tx4.object(storageUnitId), tx4.object(userNwnId), tx4.object(ENERGY_CONFIG), c4],
+      });
+      tx4.moveCall({
+        target: `${pkg}::character::return_owner_cap`,
+        typeArguments: [`${pkg}::storage_unit::StorageUnit`],
+        arguments: [tx4.object(characterId), c4, r4],
+      });
+      await exec(tx4);
+    }
 
     // 5. Deposit items (type 1 + type 2)
     for (const [uid, tid] of [[BigInt(addrNum) + 100n, 1n], [BigInt(addrNum) + 200n, 2n]]) {
