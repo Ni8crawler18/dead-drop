@@ -33,7 +33,7 @@ export async function encryptIntel(
   const encrypted = await crypto.subtle.encrypt(
     { name: ALGORITHM, iv },
     cryptoKey,
-    encoded,
+    encoded as ArrayBuffer,
   );
   const ciphertext = new Uint8Array(IV_LENGTH + encrypted.byteLength);
   ciphertext.set(iv, 0);
@@ -57,7 +57,7 @@ export async function decryptIntel(
   const decrypted = await crypto.subtle.decrypt(
     { name: ALGORITHM, iv },
     cryptoKey,
-    data,
+    data as ArrayBuffer,
   );
   return new TextDecoder().decode(decrypted);
 }

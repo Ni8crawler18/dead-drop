@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Box, Container, Flex, Heading, Text } from "@radix-ui/themes";
+import { Container, Flex, Heading, Text } from "@radix-ui/themes";
 import { Transaction } from "@mysten/sui/transactions";
 import { useDAppKit, useCurrentAccount } from "@mysten/dapp-kit-react";
 import { CATEGORIES, DEAD_DROP_CONFIG, MODULES } from "../utils/config";
-import { encryptIntel, toHex } from "../utils/crypto";
+import { encryptIntel } from "../utils/crypto";
 
 export function PostIntel() {
   const [title, setTitle] = useState("");

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Box, Container, Flex, Heading, Text } from "@radix-ui/themes";
+import { Container, Flex, Heading, Text } from "@radix-ui/themes";
 import { Transaction } from "@mysten/sui/transactions";
 import { useDAppKit, useCurrentAccount } from "@mysten/dapp-kit-react";
 import { BountyCard } from "./BountyCard";
