@@ -1,0 +1,30 @@
+# Node modules
+*/node_modules
+node_modules/
+
+# Environment variables (NEVER commit secrets)
+.keys/
+.env
+.env.*
+!.env.example
+dapps/.env
+
+# Generated keys
+docker/.env.sui
+docker/world-contracts/
+
+# OS
+.DS_Store
+
+# Deployments (contain addresses)
+deployments/*
+test-resources.json
+
+# Build artifacts
+dapps/dist
+dapps/frontend
+move-contracts/**/build/**/
+.pnpm-store/
+
+# Claude
+.claude/
