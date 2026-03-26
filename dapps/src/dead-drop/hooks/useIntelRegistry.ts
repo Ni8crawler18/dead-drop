@@ -17,17 +17,13 @@ function decodeBytes(arr: number[] | string | undefined): string {
 
 async function rpcCall(method: string, params: unknown[]): Promise<any> {
   const body = { jsonrpc: "2.0", id: 1, method, params };
-  console.log("RPC >>", method, JSON.stringify(params).slice(0, 200));
   const res = await fetch(RPC_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   const json = await res.json();
-  if (json.error) {
-    console.error("RPC ERR <<", method, json.error);
-    throw new Error(json.error.message);
-  }
+  if (json.error) throw new Error(json.error.message);
   return json.result;
 }
 
@@ -82,7 +78,6 @@ export function useIntelRegistry() {
       setError(null);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to fetch listings";
-      console.error("Fetch listings failed:", msg);
       setError(msg);
     } finally {
       setLoading(false);

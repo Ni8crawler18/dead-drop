@@ -28,3 +28,4 @@ move-contracts/**/build/**/
 
 # Claude
 .claude/
+.vercel

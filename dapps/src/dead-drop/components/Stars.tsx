@@ -54,9 +54,8 @@ export function Stars() {
             animationDuration: `${a.duration}s`,
             animationDelay: `${a.delay}s`,
             opacity: a.opacity,
-            // @ts-ignore
-            "--rot-speed": `${a.rotSpeed}s`,
-            "--init-rot": `${a.rotation}deg`,
+            ["--rot-speed" as string]: `${a.rotSpeed}s`,
+            ["--init-rot" as string]: `${a.rotation}deg`,
           } as React.CSSProperties}
         />
       ))}
