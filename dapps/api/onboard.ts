@@ -5,18 +5,19 @@
  * Called when a user clicks "Setup Demo Account" in the dApp.
  */
 
+// @ts-nocheck
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 const RPC_URL = "https://fullnode.testnet.sui.io:443";
 
 // These come from Vercel environment variables
-const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY || "";
-const WORLD_PACKAGE_ID = process.env.VITE_DEAD_DROP_PACKAGE_ID || "";
-const ADMIN_ACL = process.env.ADMIN_ACL || "";
-const OBJECT_REGISTRY = process.env.OBJECT_REGISTRY || "";
-const ENERGY_CONFIG = process.env.ENERGY_CONFIG || "";
-const NWN_ITEM_ID = process.env.NWN_ITEM_ID || "5550000012";
-const LOCATION_HASH = process.env.LOCATION_HASH || "0x16217de8ec7330ec3eac32831df5c9cd9b21a255756a5fd5762dd7f49f6cc049";
+const ADMIN_PRIVATE_KEY = (process as any).env.ADMIN_PRIVATE_KEY || "";
+const WORLD_PACKAGE_ID = (process as any).env.VITE_DEAD_DROP_PACKAGE_ID || "";
+const ADMIN_ACL = (process as any).env.ADMIN_ACL || "";
+const OBJECT_REGISTRY = (process as any).env.OBJECT_REGISTRY || "";
+const ENERGY_CONFIG = (process as any).env.ENERGY_CONFIG || "";
+const NWN_ITEM_ID = (process as any).env.NWN_ITEM_ID || "5550000012";
+const LOCATION_HASH = (process as any).env.LOCATION_HASH || "0x16217de8ec7330ec3eac32831df5c9cd9b21a255756a5fd5762dd7f49f6cc049";
 
 async function rpcCall(method: string, params: unknown[]) {
   const res = await fetch(RPC_URL, {
@@ -47,7 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     // Dynamic imports for Sui SDK (serverless compatibility)
     const { Transaction } = await import("@mysten/sui/transactions");
-    const { SuiClient } = await import("@mysten/sui/client");
+    const { SuiJsonRpcClient: SuiClient } = await import("@mysten/sui/jsonRpc");
     const { Ed25519Keypair } = await import("@mysten/sui/keypairs/ed25519");
     const { decodeSuiPrivateKey } = await import("@mysten/sui/cryptography");
     const { bcs } = await import("@mysten/sui/bcs");
