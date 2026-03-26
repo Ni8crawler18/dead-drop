@@ -187,7 +187,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           target: `${pkg}::network_node::deposit_fuel`,
           arguments: [
             txF.object(userNwnId), txF.object(ADMIN_ACL), cF,
-            txF.pure.u64(78437n), txF.pure.u64(10n), txF.pure.u32(5),
+            txF.pure.u64(78437n), txF.pure.u64(10n), txF.pure.u64(5n),
             txF.object("0x6"),
           ],
         });
