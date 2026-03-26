@@ -118,50 +118,6 @@ export function PostIntel() {
           </Text>
         </Flex>
 
-        {/* Success banner */}
-        {status === "success" && (
-          <div
-            style={{
-              backgroundColor: "rgba(74, 222, 128, 0.08)",
-              border: "1px solid rgba(74, 222, 128, 0.2)",
-              borderRadius: 4,
-              padding: "12px 14px",
-              fontFamily: "monospace",
-            }}
-          >
-            <div style={{ color: "#4ade80", fontSize: 14, marginBottom: 4 }}>
-              Intel listed successfully!
-            </div>
-            {txDigest && (
-              <a
-                href={`https://suiscan.xyz/testnet/tx/${txDigest}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: "#60a5fa", fontSize: 11 }}
-              >
-                View on SuiScan: {txDigest.slice(0, 20)}...
-              </a>
-            )}
-          </div>
-        )}
-
-        {/* Error banner */}
-        {status === "error" && (
-          <div
-            style={{
-              backgroundColor: "rgba(248, 113, 113, 0.08)",
-              border: "1px solid rgba(248, 113, 113, 0.2)",
-              borderRadius: 4,
-              padding: "12px 14px",
-              fontFamily: "monospace",
-              color: "#f87171",
-              fontSize: 12,
-            }}
-          >
-            {errorMsg}
-          </div>
-        )}
-
         <Flex direction="column" gap="3">
           <div>
             <div
@@ -322,6 +278,52 @@ export function PostIntel() {
                 ? "WAITING FOR WALLET..."
                 : "// ENCRYPT & LIST INTEL"}
           </button>
+
+          {/* Success banner */}
+          {status === "success" && (
+            <div
+              style={{
+                backgroundColor: "rgba(57, 217, 138, 0.08)",
+                border: "1px solid rgba(57, 217, 138, 0.25)",
+                borderRadius: 6,
+                padding: "14px 16px",
+                fontFamily: "monospace",
+                animation: "fadeIn 0.3s ease",
+              }}
+            >
+              <div style={{ color: "#39d98a", fontSize: 14, fontWeight: 600, marginBottom: 6 }}>
+                ◆ Intel listed successfully!
+              </div>
+              {txDigest && (
+                <a
+                  href={`https://suiscan.xyz/testnet/tx/${txDigest}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "#4dabf7", fontSize: 11 }}
+                >
+                  View on SuiScan: {txDigest.slice(0, 24)}...
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Error banner */}
+          {status === "error" && (
+            <div
+              style={{
+                backgroundColor: "rgba(255, 71, 87, 0.08)",
+                border: "1px solid rgba(255, 71, 87, 0.2)",
+                borderRadius: 6,
+                padding: "14px 16px",
+                fontFamily: "monospace",
+                color: "#ff4757",
+                fontSize: 12,
+                animation: "fadeIn 0.3s ease",
+              }}
+            >
+              {errorMsg}
+            </div>
+          )}
         </Flex>
       </Flex>
     </Container>

@@ -77,7 +77,7 @@ Dead Drop turns Smart Storage Units into an underground intelligence network whe
 - **Wallet:** Slush (Sui wallet)
 - **Deployment:** Vercel (frontend) + Sui Testnet (contracts)
 
-![Post Intel](images/intel-post.png)
+![Post Intel](images/post-intel.png)
 
 ## Quick Start
 
@@ -123,7 +123,7 @@ pnpm dev
 | `pnpm dd:submit-claim` | Submit intel for a bounty |
 | `pnpm dd:accept-claim` | Accept a bounty claim |
 
-![Agent Leaderboard](images/agent-leaderboard.png)
+![Agent Leaderboard](images/agents.png)
 
 ## Hackathon Categories
 
