@@ -4,27 +4,13 @@
 
 > *In a broken universe, the most valuable resource isn't fuel or minerals — it's information.*
 
-Dead Drop turns Smart Storage Units into an underground intelligence network where scouts sell coordinates, spies trade fleet movements, and bounty hunters bid for target locations.
-
-Every transaction is trustless. Every provider is rated. Every secret has a price.
-
-<br>
+Dead Drop turns Smart Storage Units into an underground intelligence network where scouts sell coordinates, spies trade fleet movements, and bounty hunters bid for target locations. Every transaction is trustless. Every provider is rated. Every secret has a price.
 
 **[Live Demo](https://deaddrop-intel.vercel.app)** &nbsp;·&nbsp; **[Testnet Package](https://suiscan.xyz/testnet/object/0x01e770318f1fe9a184b976532b784367531d5404aaa8f6f4b19e96da65adbf42)**
 
-<br>
-
 ![Landing Page](images/landing.png)
 
-<br>
-
----
-
-<br>
-
 ## How It Works
-
-<br>
 
 ### Selling Intel
 
@@ -32,8 +18,6 @@ Every transaction is trustless. Every provider is rated. Every secret has a pric
 2. Intel is **encrypted client-side** with AES-256-GCM before touching the blockchain
 3. Encrypted payload + decryption key stored on-chain via Smart Storage Unit extension
 4. Listing appears on the marketplace with title, category, and price
-
-<br>
 
 ### Buying Intel
 
@@ -43,27 +27,15 @@ Every transaction is trustless. Every provider is rated. Every secret has a pric
 4. The event contains the **AES decryption key** — only visible to the buyer
 5. The dApp decrypts and displays the secret intel instantly
 
-<br>
-
 ### Reputation System
 
 - Buyers rate intel accuracy within a 24-hour window
 - Provider reputation is tracked on-chain and visible to all
 - Low accuracy providers get flagged
 
-<br>
-
 ![Marketplace](images/marketplace.png)
 
-<br>
-
----
-
-<br>
-
 ## Features
-
-<br>
 
 | Feature | Description |
 |---|---|
@@ -74,42 +46,24 @@ Every transaction is trustless. Every provider is rated. Every secret has a pric
 | **Auto Onboarding** | One-click demo account setup — character, storage, items, gas |
 | **AES-256-GCM Encryption** | Client-side encryption — keys never exposed until purchase |
 
-<br>
-
 ![Purchase Success](images/purchase-success.png)
-
-<br>
-
----
-
-<br>
 
 ## Architecture
 
-<br>
-
 ```
 ┌──────────────┐     AES-256-GCM       ┌───────────────────────┐
-│              │                        │                       │
 │   Provider   │ ──── encrypt ────────► │    Sui Blockchain     │
-│   (dApp)     │                        │                       │
-│              │                        │    IntelRegistry       │
+│   (dApp)     │                        │    IntelRegistry       │
 └──────────────┘                        │    ├── listings[]      │
                                         │    ├── reputations     │
 ┌──────────────┐     purchase_intel     │    └── stats           │
-│              │                        │                       │
 │   Buyer      │ ──── sign tx ────────► │    BountyBoard         │
-│   (wallet)   │                        │    ├── bounties[]      │
-│              │ ◄── event: key ─────── │    └── claims          │
-│              │     decrypt intel      │                       │
+│   (wallet)   │ ◄── event: key ─────── │    ├── bounties[]      │
+│              │     decrypt intel      │    └── claims          │
 └──────────────┘                        └───────────────────────┘
 ```
 
-<br>
-
 ### Move Smart Contracts
-
-<br>
 
 | Module | Purpose |
 |---|---|
@@ -117,11 +71,7 @@ Every transaction is trustless. Every provider is rated. Every secret has a pric
 | `intel_market.move` | Listings, purchases, ratings, on-chain reputation — 13 functions, 4 events |
 | `bounty_board.move` | Bounty posting, claiming, accept/reject flow — 7 functions, 5 events |
 
-<br>
-
 ### Tech Stack
-
-<br>
 
 | Layer | Technology |
 |---|---|
@@ -133,19 +83,9 @@ Every transaction is trustless. Every provider is rated. Every secret has a pric
 | **Deployment** | Vercel (frontend + API) · Sui Testnet (contracts) |
 | **Onboarding** | Serverless API — auto-provisions character, NWN, storage, items |
 
-<br>
-
 ![Post Intel](images/post-intel.png)
 
-<br>
-
----
-
-<br>
-
 ## Quick Start
-
-<br>
 
 ### For Users
 
@@ -154,14 +94,11 @@ Every transaction is trustless. Every provider is rated. Every secret has a pric
 3. Click **"Setup Demo Account"** — creates your character, storage, and items automatically
 4. Browse intel, post intel, purchase secrets
 
-<br>
-
 ### For Developers
 
 ```bash
 git clone https://github.com/Ni8crawler18/dead-drop.git
 cd dead-drop
-
 pnpm install
 
 # Deploy contracts (requires Sui CLI + testnet SUI)
@@ -173,16 +110,10 @@ cp .env.example .env
 # Fill in contract addresses from publish output
 
 # Run dApp
-cd dapps
-pnpm install
-pnpm dev
+cd dapps && pnpm install && pnpm dev
 ```
 
-<br>
-
 ### Available Scripts
-
-<br>
 
 | Script | Description |
 |---|---|
@@ -194,19 +125,9 @@ pnpm dev
 | `pnpm dd:submit-claim` | Submit intel to claim a bounty |
 | `pnpm dd:accept-claim` | Accept a bounty claim (poster only) |
 
-<br>
-
 ![Agent Leaderboard](images/agents.png)
 
-<br>
-
----
-
-<br>
-
 ## Security
-
-<br>
 
 | Measure | Detail |
 |---|---|
@@ -218,27 +139,6 @@ pnpm dev
 | **Immutable reputation** | On-chain ratings are transparent and permanent |
 | **Rate-limited onboarding** | 1 request per minute per wallet to prevent abuse |
 | **CORS restricted API** | Onboarding endpoint only accepts requests from the dApp domain |
-
-<br>
-
----
-
-<br>
-
-## Hackathon Categories
-
-<br>
-
-- **Creative** — An espionage black market, unique to EVE Frontier's universe
-- **Weirdest Idea** — Underground intel trading with encrypted dead drops in space
-- **Utility** — Practical survival tool: sell coordinates, fleet movements, trade routes
-- **Live Frontier Integration** — Deployed on Sui testnet using Smart Storage Unit extensions
-
-<br>
-
----
-
-<br>
 
 ## License
 
