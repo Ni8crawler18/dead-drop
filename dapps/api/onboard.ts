@@ -26,9 +26,8 @@ const LOCATION_HASH = env(
   "0x16217de8ec7330ec3eac32831df5c9cd9b21a255756a5fd5762dd7f49f6cc049",
 );
 
-// Simple in-memory rate limiter (resets on cold start)
 const rateLimitMap = new Map<string, number>();
-const RATE_LIMIT_MS = 60_000; // 1 request per minute per wallet
+const RATE_LIMIT_MS = 60_000;
 
 async function rpcCall(method: string, params: unknown[]) {
   const res = await fetch(RPC_URL, {
@@ -41,8 +40,8 @@ async function rpcCall(method: string, params: unknown[]) {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const origin = req.headers.origin || "";
-  const allowedOrigin = ALLOWED_ORIGINS.find((o) => origin.startsWith(o));
-  res.setHeader("Access-Control-Allow-Origin", allowedOrigin || ALLOWED_ORIGINS[0]);
+  const allowed = ALLOWED_ORIGINS.find((o) => origin.startsWith(o));
+  res.setHeader("Access-Control-Allow-Origin", allowed || ALLOWED_ORIGINS[0]);
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
@@ -50,53 +49,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   const { walletAddress } = req.body || {};
-  if (
-    !walletAddress ||
-    typeof walletAddress !== "string" ||
-    !walletAddress.startsWith("0x") ||
-    walletAddress.length !== 66
-  ) {
+  if (!walletAddress || typeof walletAddress !== "string" || !walletAddress.startsWith("0x") || walletAddress.length !== 66) {
     return res.status(400).json({ error: "Invalid wallet address" });
   }
 
-  // Rate limit
   const lastCall = rateLimitMap.get(walletAddress) || 0;
   if (Date.now() - lastCall < RATE_LIMIT_MS) {
     return res.status(429).json({ error: "Rate limited. Try again in 1 minute." });
   }
   rateLimitMap.set(walletAddress, Date.now());
 
-  if (!ADMIN_PRIVATE_KEY) {
-    return res.status(500).json({ error: "Server not configured" });
-  }
+  if (!ADMIN_PRIVATE_KEY) return res.status(500).json({ error: "Server not configured" });
 
   try {
     const { Transaction } = await import("@mysten/sui/transactions");
-    const { SuiJsonRpcClient: SuiClient } = await import("@mysten/sui/jsonRpc");
+    const { SuiJsonRpcClient } = await import("@mysten/sui/jsonRpc");
     const { Ed25519Keypair } = await import("@mysten/sui/keypairs/ed25519");
     const { decodeSuiPrivateKey } = await import("@mysten/sui/cryptography");
     const { bcs } = await import("@mysten/sui/bcs");
     const { deriveObjectID } = await import("@mysten/sui/utils");
 
-    const client = new SuiClient({ url: RPC_URL });
+    const client = new SuiJsonRpcClient({ url: RPC_URL });
     const { secretKey } = decodeSuiPrivateKey(ADMIN_PRIVATE_KEY);
-    const adminKeypair = Ed25519Keypair.fromSecretKey(secretKey);
-    const adminAddress = adminKeypair.getPublicKey().toSuiAddress();
+    const keypair = Ed25519Keypair.fromSecretKey(secretKey);
+    const adminAddr = keypair.getPublicKey().toSuiAddress();
+    const pkg = WORLD_PACKAGE_ID;
 
-    const TenantItemId = bcs.struct("TenantItemId", {
-      id: bcs.u64(),
-      tenant: bcs.string(),
-    });
+    const TenantItemId = bcs.struct("TenantItemId", { id: bcs.u64(), tenant: bcs.string() });
     function deriveId(itemId: number | bigint): string {
-      const key = TenantItemId.serialize({
-        id: BigInt(itemId),
-        tenant: "dev",
-      }).toBytes();
-      return deriveObjectID(
-        OBJECT_REGISTRY,
-        `${WORLD_PACKAGE_ID}::in_game_id::TenantItemId`,
-        key,
-      );
+      const key = TenantItemId.serialize({ id: BigInt(itemId), tenant: "dev" }).toBytes();
+      return deriveObjectID(OBJECT_REGISTRY, `${pkg}::in_game_id::TenantItemId`, key);
+    }
+
+    // Execute transaction and wait for finality
+    async function exec(tx: InstanceType<typeof Transaction>, showEvents = false) {
+      const result = await client.signAndExecuteTransaction({
+        transaction: tx,
+        signer: keypair,
+        options: { showEffects: true, showEvents },
+      });
+      if (result.digest) {
+        await client.waitForTransaction({ digest: result.digest });
+      }
+      return result;
     }
 
     const addrNum = parseInt(walletAddress.slice(2, 10), 16);
@@ -104,208 +99,160 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const storageItemId = 700000000 + (addrNum % 100000000);
     const characterId = deriveId(charGameId);
     const nwnId = deriveId(BigInt(NWN_ITEM_ID));
+    const storageIdDerived = deriveId(storageItemId);
 
-    // Check if already onboarded
-    const existing = await rpcCall("sui_getObject", [
-      characterId,
-      { showContent: true },
-    ]);
-    if (existing?.data?.content) {
-      const storageId = deriveId(storageItemId);
+    // Check existing state
+    const charObj = await rpcCall("sui_getObject", [characterId, { showContent: true }]);
+    const charExists = !!charObj?.data?.content;
+    const storObj = await rpcCall("sui_getObject", [storageIdDerived, { showContent: true }]);
+    const storExists = !!storObj?.data?.content;
+
+    if (charExists && storExists) {
       return res.status(200).json({
         status: "already_onboarded",
         characterId,
-        storageUnitId: storageId,
+        storageUnitId: storageIdDerived,
         message: "Account already set up!",
       });
     }
 
-    const locationBytes = Array.from(
-      new Uint8Array(
-        LOCATION_HASH.slice(2)
-          .match(/.{2}/g)!
-          .map((b: string) => parseInt(b, 16)),
-      ),
+    const locBytes = Array.from(
+      new Uint8Array(LOCATION_HASH.slice(2).match(/.{2}/g)!.map((b: string) => parseInt(b, 16))),
     );
 
-    // Step 1: Create character
-    const tx1 = new Transaction();
-    const [character] = tx1.moveCall({
-      target: `${WORLD_PACKAGE_ID}::character::create_character`,
-      arguments: [
-        tx1.object(OBJECT_REGISTRY),
-        tx1.object(ADMIN_ACL),
-        tx1.pure.u32(charGameId),
-        tx1.pure.string("dev"),
-        tx1.pure.u32(100),
-        tx1.pure.address(walletAddress),
-        tx1.pure.string("dead-drop-agent"),
-      ],
-    });
-    tx1.moveCall({
-      target: `${WORLD_PACKAGE_ID}::character::share_character`,
-      arguments: [character, tx1.object(ADMIN_ACL)],
-    });
-    await client.signAndExecuteTransaction({
-      transaction: tx1,
-      signer: adminKeypair,
-    });
+    // 1. Create character (if needed)
+    if (!charExists) {
+      const tx = new Transaction();
+      const [c] = tx.moveCall({
+        target: `${pkg}::character::create_character`,
+        arguments: [
+          tx.object(OBJECT_REGISTRY), tx.object(ADMIN_ACL),
+          tx.pure.u32(charGameId), tx.pure.string("dev"),
+          tx.pure.u32(100), tx.pure.address(walletAddress),
+          tx.pure.string("dead-drop-agent"),
+        ],
+      });
+      tx.moveCall({ target: `${pkg}::character::share_character`, arguments: [c, tx.object(ADMIN_ACL)] });
+      await exec(tx);
+    }
 
-    // Step 2: Create storage unit
-    const tx2 = new Transaction();
-    const [ssu] = tx2.moveCall({
-      target: `${WORLD_PACKAGE_ID}::storage_unit::anchor`,
-      arguments: [
-        tx2.object(OBJECT_REGISTRY),
-        tx2.object(nwnId),
-        tx2.object(characterId),
-        tx2.object(ADMIN_ACL),
-        tx2.pure.u64(BigInt(storageItemId)),
-        tx2.pure.u64(88082n),
-        tx2.pure.u64(1000000000000n),
-        tx2.pure(bcs.vector(bcs.u8()).serialize(locationBytes)),
-      ],
-    });
-    tx2.moveCall({
-      target: `${WORLD_PACKAGE_ID}::storage_unit::share_storage_unit`,
-      arguments: [ssu, tx2.object(ADMIN_ACL)],
-    });
-    const ssuResult = await client.signAndExecuteTransaction({
-      transaction: tx2,
-      signer: adminKeypair,
-      options: { showEvents: true },
-    });
+    // 2. Create storage unit (if needed)
+    let storageUnitId = storageIdDerived;
+    let ownerCapId = "";
+    if (!storExists) {
+      const tx = new Transaction();
+      const [s] = tx.moveCall({
+        target: `${pkg}::storage_unit::anchor`,
+        arguments: [
+          tx.object(OBJECT_REGISTRY), tx.object(nwnId), tx.object(characterId), tx.object(ADMIN_ACL),
+          tx.pure.u64(BigInt(storageItemId)), tx.pure.u64(88082n), tx.pure.u64(1000000000000n),
+          tx.pure(bcs.vector(bcs.u8()).serialize(locBytes)),
+        ],
+      });
+      tx.moveCall({ target: `${pkg}::storage_unit::share_storage_unit`, arguments: [s, tx.object(ADMIN_ACL)] });
+      const r = await exec(tx, true);
+      const ev = r.events?.find((e: any) => e.type?.includes("StorageUnitCreatedEvent"));
+      if (ev?.parsedJson) {
+        storageUnitId = (ev.parsedJson as any).storage_unit_id || storageIdDerived;
+        ownerCapId = (ev.parsedJson as any).owner_cap_id || "";
+      }
+    }
 
-    const ssuEvent = ssuResult.events?.find((e: any) =>
-      e.type?.includes("StorageUnitCreatedEvent"),
-    );
-    const storageUnitId =
-      (ssuEvent?.parsedJson as any)?.storage_unit_id || deriveId(storageItemId);
-    const ownerCapId =
-      (ssuEvent?.parsedJson as any)?.owner_cap_id || "";
+    if (!ownerCapId) {
+      // Look up OwnerCap from character's owned objects
+      const capType = `${pkg}::access::OwnerCap<${pkg}::storage_unit::StorageUnit>`;
+      const caps = await rpcCall("suix_getOwnedObjects", [
+        characterId, { filter: { StructType: capType }, options: { showContent: true } }, null, 1,
+      ]);
+      ownerCapId = caps?.data?.[0]?.data?.objectId || "";
+    }
 
-    // Step 3: Temporarily set character to admin for setup
+    if (!ownerCapId) {
+      return res.status(500).json({ error: "Could not find OwnerCap for storage unit" });
+    }
+
+    // 3. Temporarily set character address to admin
     const tx3 = new Transaction();
     tx3.moveCall({
-      target: `${WORLD_PACKAGE_ID}::character::update_address`,
-      arguments: [
-        tx3.object(characterId),
-        tx3.object(ADMIN_ACL),
-        tx3.pure.address(adminAddress),
-      ],
+      target: `${pkg}::character::update_address`,
+      arguments: [tx3.object(characterId), tx3.object(ADMIN_ACL), tx3.pure.address(adminAddr)],
     });
-    await client.signAndExecuteTransaction({
-      transaction: tx3,
-      signer: adminKeypair,
-    });
+    await exec(tx3);
 
-    // Step 4: Online storage unit
+    // 4. Online storage unit
     const tx4 = new Transaction();
-    const [cap4, rec4] = tx4.moveCall({
-      target: `${WORLD_PACKAGE_ID}::character::borrow_owner_cap`,
-      typeArguments: [`${WORLD_PACKAGE_ID}::storage_unit::StorageUnit`],
+    const [c4, r4] = tx4.moveCall({
+      target: `${pkg}::character::borrow_owner_cap`,
+      typeArguments: [`${pkg}::storage_unit::StorageUnit`],
       arguments: [tx4.object(characterId), tx4.object(ownerCapId)],
     });
     tx4.moveCall({
-      target: `${WORLD_PACKAGE_ID}::storage_unit::online`,
-      arguments: [
-        tx4.object(storageUnitId),
-        tx4.object(nwnId),
-        tx4.object(ENERGY_CONFIG),
-        cap4,
-      ],
+      target: `${pkg}::storage_unit::online`,
+      arguments: [tx4.object(storageUnitId), tx4.object(nwnId), tx4.object(ENERGY_CONFIG), c4],
     });
     tx4.moveCall({
-      target: `${WORLD_PACKAGE_ID}::character::return_owner_cap`,
-      typeArguments: [`${WORLD_PACKAGE_ID}::storage_unit::StorageUnit`],
-      arguments: [tx4.object(characterId), cap4, rec4],
+      target: `${pkg}::character::return_owner_cap`,
+      typeArguments: [`${pkg}::storage_unit::StorageUnit`],
+      arguments: [tx4.object(characterId), c4, r4],
     });
-    await client.signAndExecuteTransaction({
-      transaction: tx4,
-      signer: adminKeypair,
-    });
+    await exec(tx4);
 
-    // Step 5: Deposit items (type 1 and type 2)
-    for (const [itemUniqueId, typeId] of [
-      [BigInt(addrNum) + 100n, 1n],
-      [BigInt(addrNum) + 200n, 2n],
-    ]) {
-      const txD = new Transaction();
-      const [capD, recD] = txD.moveCall({
-        target: `${WORLD_PACKAGE_ID}::character::borrow_owner_cap`,
-        typeArguments: [`${WORLD_PACKAGE_ID}::storage_unit::StorageUnit`],
-        arguments: [txD.object(characterId), txD.object(ownerCapId)],
+    // 5. Deposit items (type 1 + type 2)
+    for (const [uid, tid] of [[BigInt(addrNum) + 100n, 1n], [BigInt(addrNum) + 200n, 2n]]) {
+      const tx = new Transaction();
+      const [c, r] = tx.moveCall({
+        target: `${pkg}::character::borrow_owner_cap`,
+        typeArguments: [`${pkg}::storage_unit::StorageUnit`],
+        arguments: [tx.object(characterId), tx.object(ownerCapId)],
       });
-      txD.moveCall({
-        target: `${WORLD_PACKAGE_ID}::storage_unit::game_item_to_chain_inventory`,
-        typeArguments: [`${WORLD_PACKAGE_ID}::storage_unit::StorageUnit`],
+      tx.moveCall({
+        target: `${pkg}::storage_unit::game_item_to_chain_inventory`,
+        typeArguments: [`${pkg}::storage_unit::StorageUnit`],
         arguments: [
-          txD.object(storageUnitId),
-          txD.object(ADMIN_ACL),
-          txD.object(characterId),
-          capD,
-          txD.pure.u64(itemUniqueId),
-          txD.pure.u64(typeId),
-          txD.pure.u64(10n),
-          txD.pure.u32(100),
+          tx.object(storageUnitId), tx.object(ADMIN_ACL), tx.object(characterId), c,
+          tx.pure.u64(uid), tx.pure.u64(tid), tx.pure.u64(10n), tx.pure.u32(100),
         ],
       });
-      txD.moveCall({
-        target: `${WORLD_PACKAGE_ID}::character::return_owner_cap`,
-        typeArguments: [`${WORLD_PACKAGE_ID}::storage_unit::StorageUnit`],
-        arguments: [txD.object(characterId), capD, recD],
+      tx.moveCall({
+        target: `${pkg}::character::return_owner_cap`,
+        typeArguments: [`${pkg}::storage_unit::StorageUnit`],
+        arguments: [tx.object(characterId), c, r],
       });
-      await client.signAndExecuteTransaction({
-        transaction: txD,
-        signer: adminKeypair,
-      });
+      await exec(tx);
     }
 
-    // Step 6: Authorize DeadDropAuth extension
-    const tx5 = new Transaction();
-    const [cap5, rec5] = tx5.moveCall({
-      target: `${WORLD_PACKAGE_ID}::character::borrow_owner_cap`,
-      typeArguments: [`${WORLD_PACKAGE_ID}::storage_unit::StorageUnit`],
-      arguments: [tx5.object(characterId), tx5.object(ownerCapId)],
-    });
-    tx5.moveCall({
-      target: `${WORLD_PACKAGE_ID}::storage_unit::authorize_extension`,
-      typeArguments: [`${WORLD_PACKAGE_ID}::config::DeadDropAuth`],
-      arguments: [tx5.object(storageUnitId), cap5],
-    });
-    tx5.moveCall({
-      target: `${WORLD_PACKAGE_ID}::character::return_owner_cap`,
-      typeArguments: [`${WORLD_PACKAGE_ID}::storage_unit::StorageUnit`],
-      arguments: [tx5.object(characterId), cap5, rec5],
-    });
-    await client.signAndExecuteTransaction({
-      transaction: tx5,
-      signer: adminKeypair,
-    });
-
-    // Step 7: Restore character address to user
+    // 6. Authorize DeadDropAuth
     const tx6 = new Transaction();
+    const [c6, r6] = tx6.moveCall({
+      target: `${pkg}::character::borrow_owner_cap`,
+      typeArguments: [`${pkg}::storage_unit::StorageUnit`],
+      arguments: [tx6.object(characterId), tx6.object(ownerCapId)],
+    });
     tx6.moveCall({
-      target: `${WORLD_PACKAGE_ID}::character::update_address`,
-      arguments: [
-        tx6.object(characterId),
-        tx6.object(ADMIN_ACL),
-        tx6.pure.address(walletAddress),
-      ],
+      target: `${pkg}::storage_unit::authorize_extension`,
+      typeArguments: [`${pkg}::config::DeadDropAuth`],
+      arguments: [tx6.object(storageUnitId), c6],
     });
-    await client.signAndExecuteTransaction({
-      transaction: tx6,
-      signer: adminKeypair,
+    tx6.moveCall({
+      target: `${pkg}::character::return_owner_cap`,
+      typeArguments: [`${pkg}::storage_unit::StorageUnit`],
+      arguments: [tx6.object(characterId), c6, r6],
     });
+    await exec(tx6);
 
-    // Step 8: Send SUI for gas
+    // 7. Restore character address to user
     const tx7 = new Transaction();
-    const [coin] = tx7.splitCoins(tx7.gas, [300000000]);
-    tx7.transferObjects([coin], walletAddress);
-    await client.signAndExecuteTransaction({
-      transaction: tx7,
-      signer: adminKeypair,
+    tx7.moveCall({
+      target: `${pkg}::character::update_address`,
+      arguments: [tx7.object(characterId), tx7.object(ADMIN_ACL), tx7.pure.address(walletAddress)],
     });
+    await exec(tx7);
+
+    // 8. Send SUI for gas
+    const tx8 = new Transaction();
+    const [coin] = tx8.splitCoins(tx8.gas, [300000000]);
+    tx8.transferObjects([coin], walletAddress);
+    await exec(tx8);
 
     return res.status(200).json({
       status: "success",
@@ -316,7 +263,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (error: any) {
     return res.status(500).json({
-      error: error?.message?.slice(0, 200) || "Onboarding failed",
+      error: (error?.message || "Onboarding failed").slice(0, 200),
     });
   }
 }
