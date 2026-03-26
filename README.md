@@ -1,100 +1,167 @@
-# DEAD/DROP — Underground Intel Market for EVE Frontier
+# DEAD/DROP
+
+### Underground Intel Market for EVE Frontier
 
 > *In a broken universe, the most valuable resource isn't fuel or minerals — it's information.*
 
-Dead Drop turns Smart Storage Units into an underground intelligence network where scouts sell coordinates, spies trade fleet movements, and bounty hunters bid for target locations. Every transaction is trustless, every provider is rated, and every secret has a price.
+Dead Drop turns Smart Storage Units into an underground intelligence network where scouts sell coordinates, spies trade fleet movements, and bounty hunters bid for target locations.
 
-**Live Demo:** [deaddrop-intel.vercel.app](https://deaddrop-intel.vercel.app)
-**Testnet Package:** `0x01e770318f1fe9a184b976532b784367531d5404aaa8f6f4b19e96da65adbf42`
+Every transaction is trustless. Every provider is rated. Every secret has a price.
+
+<br>
+
+**[Live Demo](https://deaddrop-intel.vercel.app)** &nbsp;·&nbsp; **[Testnet Package](https://suiscan.xyz/testnet/object/0x01e770318f1fe9a184b976532b784367531d5404aaa8f6f4b19e96da65adbf42)**
+
+<br>
 
 ![Landing Page](images/landing.png)
 
+<br>
+
+---
+
+<br>
+
 ## How It Works
 
-### Sell Intel
-1. Provider writes classified intel (coordinates, fleet routes, trade secrets)
+<br>
+
+### Selling Intel
+
+1. Write classified intel — coordinates, fleet routes, trade secrets
 2. Intel is **encrypted client-side** with AES-256-GCM before touching the blockchain
 3. Encrypted payload + decryption key stored on-chain via Smart Storage Unit extension
 4. Listing appears on the marketplace with title, category, and price
 
-### Buy Intel
-1. Buyer browses the marketplace, picks a listing
-2. Signs a wallet transaction that pays the listed item price
+<br>
+
+### Buying Intel
+
+1. Browse the marketplace, pick a listing
+2. Sign a wallet transaction that pays the listed item price
 3. The Move smart contract atomically transfers payment and emits an `IntelPurchased` event
 4. The event contains the **AES decryption key** — only visible to the buyer
 5. The dApp decrypts and displays the secret intel instantly
 
-### Rate & Reputation
-- Buyers rate intel accuracy (positive/negative) within 24 hours
-- Provider reputation tracked on-chain — visible to all buyers
-- "SUS" badge for providers with low accuracy scores
+<br>
+
+### Reputation System
+
+- Buyers rate intel accuracy within a 24-hour window
+- Provider reputation is tracked on-chain and visible to all
+- Low accuracy providers get flagged
+
+<br>
 
 ![Marketplace](images/marketplace.png)
 
+<br>
+
+---
+
+<br>
+
 ## Features
 
+<br>
+
 | Feature | Description |
-|---------|-------------|
+|---|---|
 | **Intel Marketplace** | Browse, filter, and purchase encrypted intelligence |
 | **Post Intel** | Encrypt and list your own intel for sale |
 | **Bounty Board** | Post bounties requesting specific intel, claim with submissions |
 | **Agent Leaderboard** | On-chain reputation scores, sales stats, trust ratings |
-| **Auto Onboarding** | One-click demo account setup for new users |
-| **AES-256-GCM** | Client-side encryption — keys never exposed until purchase |
+| **Auto Onboarding** | One-click demo account setup — character, storage, items, gas |
+| **AES-256-GCM Encryption** | Client-side encryption — keys never exposed until purchase |
+
+<br>
 
 ![Purchase Success](images/purchase-success.png)
 
+<br>
+
+---
+
+<br>
+
 ## Architecture
 
+<br>
+
 ```
-┌─────────────┐     AES-256-GCM      ┌──────────────────┐
-│  Provider    │ ──── encrypt ──────► │  Sui Blockchain   │
-│  (dApp)      │                      │                   │
-└─────────────┘                      │  IntelRegistry    │
-                                     │  ├─ listings[]    │
-┌─────────────┐     purchase_intel   │  ├─ reputations   │
-│  Buyer       │ ──── sign tx ─────► │  └─ stats         │
-│  (wallet)    │                      │                   │
-│              │ ◄── event: key ──── │  BountyBoard      │
-│              │     decrypt intel    │  ├─ bounties[]    │
-└─────────────┘                      └──────────────────┘
+┌──────────────┐     AES-256-GCM       ┌───────────────────────┐
+│              │                        │                       │
+│   Provider   │ ──── encrypt ────────► │    Sui Blockchain     │
+│   (dApp)     │                        │                       │
+│              │                        │    IntelRegistry       │
+└──────────────┘                        │    ├── listings[]      │
+                                        │    ├── reputations     │
+┌──────────────┐     purchase_intel     │    └── stats           │
+│              │                        │                       │
+│   Buyer      │ ──── sign tx ────────► │    BountyBoard         │
+│   (wallet)   │                        │    ├── bounties[]      │
+│              │ ◄── event: key ─────── │    └── claims          │
+│              │     decrypt intel      │                       │
+└──────────────┘                        └───────────────────────┘
 ```
+
+<br>
 
 ### Move Smart Contracts
 
+<br>
+
 | Module | Purpose |
-|--------|---------|
+|---|---|
 | `config.move` | Shared config, AdminCap, DeadDropAuth witness for Storage Unit extension |
-| `intel_market.move` | Listings, purchases, ratings, reputation (13 functions, 4 events) |
-| `bounty_board.move` | Bounty posting, claiming, accept/reject (7 functions, 5 events) |
+| `intel_market.move` | Listings, purchases, ratings, on-chain reputation — 13 functions, 4 events |
+| `bounty_board.move` | Bounty posting, claiming, accept/reject flow — 7 functions, 5 events |
+
+<br>
 
 ### Tech Stack
 
-- **Blockchain:** Sui (Move language)
-- **Extension Pattern:** Typed witness auth on Smart Storage Units
-- **Encryption:** AES-256-GCM (Web Crypto API, client-side)
-- **Frontend:** React + Vite + EVE Frontier dApp Kit
-- **Wallet:** Slush (Sui wallet)
-- **Deployment:** Vercel (frontend) + Sui Testnet (contracts)
+<br>
+
+| Layer | Technology |
+|---|---|
+| **Blockchain** | Sui (Move language) |
+| **Extension Pattern** | Typed witness auth on Smart Storage Units |
+| **Encryption** | AES-256-GCM via Web Crypto API (client-side) |
+| **Frontend** | React + Vite + EVE Frontier dApp Kit |
+| **Wallet** | Slush (Sui wallet) |
+| **Deployment** | Vercel (frontend + API) · Sui Testnet (contracts) |
+| **Onboarding** | Serverless API — auto-provisions character, NWN, storage, items |
+
+<br>
 
 ![Post Intel](images/post-intel.png)
 
+<br>
+
+---
+
+<br>
+
 ## Quick Start
 
-### For Users (Demo)
-1. Visit [deaddrop-intel.vercel.app](https://deaddrop-intel.vercel.app)
+<br>
+
+### For Users
+
+1. Visit **[deaddrop-intel.vercel.app](https://deaddrop-intel.vercel.app)**
 2. Connect your Slush wallet (Sui testnet)
-3. Click **"Setup Demo Account"** to auto-provision your character + items
+3. Click **"Setup Demo Account"** — creates your character, storage, and items automatically
 4. Browse intel, post intel, purchase secrets
+
+<br>
 
 ### For Developers
 
 ```bash
-# Clone
 git clone https://github.com/Ni8crawler18/dead-drop.git
 cd dead-drop
 
-# Install
 pnpm install
 
 # Deploy contracts (requires Sui CLI + testnet SUI)
@@ -111,35 +178,67 @@ pnpm install
 pnpm dev
 ```
 
-### Scripts
+<br>
+
+### Available Scripts
+
+<br>
 
 | Script | Description |
-|--------|-------------|
-| `pnpm dd:configure-market` | Set rating window + max listings |
-| `pnpm dd:create-listing` | Encrypt & list intel for sale |
+|---|---|
+| `pnpm dd:configure-market` | Set rating window and listing limits |
+| `pnpm dd:create-listing` | Encrypt and list intel for sale |
 | `pnpm dd:purchase-intel` | Buy intel, receive decryption key |
-| `pnpm dd:rate-intel` | Rate purchased intel |
-| `pnpm dd:post-bounty` | Post a bounty requesting intel |
-| `pnpm dd:submit-claim` | Submit intel for a bounty |
-| `pnpm dd:accept-claim` | Accept a bounty claim |
+| `pnpm dd:rate-intel` | Rate purchased intel accuracy |
+| `pnpm dd:post-bounty` | Post a bounty requesting specific intel |
+| `pnpm dd:submit-claim` | Submit intel to claim a bounty |
+| `pnpm dd:accept-claim` | Accept a bounty claim (poster only) |
+
+<br>
 
 ![Agent Leaderboard](images/agents.png)
 
+<br>
+
+---
+
+<br>
+
+## Security
+
+<br>
+
+| Measure | Detail |
+|---|---|
+| **Client-side encryption** | AES-256-GCM — intel encrypted before going on-chain |
+| **Key reveal via events** | Decryption key only exposed in the `IntelPurchased` transaction event |
+| **Typed witness pattern** | `DeadDropAuth` restricts who can interact with storage units |
+| **Self-purchase prevention** | Smart contract blocks buying your own listings |
+| **Rating window** | Buyers must rate within 24 hours of purchase |
+| **Immutable reputation** | On-chain ratings are transparent and permanent |
+| **Rate-limited onboarding** | 1 request per minute per wallet to prevent abuse |
+| **CORS restricted API** | Onboarding endpoint only accepts requests from the dApp domain |
+
+<br>
+
+---
+
+<br>
+
 ## Hackathon Categories
 
-- **Creative** — Novel concept: an espionage black market unique to EVE Frontier's universe
-- **Weirdest Idea** — An underground intel trading network with encrypted dead drops in space
-- **Utility** — Real survival tool: sell coordinates, fleet movements, trade routes
+<br>
+
+- **Creative** — An espionage black market, unique to EVE Frontier's universe
+- **Weirdest Idea** — Underground intel trading with encrypted dead drops in space
+- **Utility** — Practical survival tool: sell coordinates, fleet movements, trade routes
 - **Live Frontier Integration** — Deployed on Sui testnet using Smart Storage Unit extensions
 
-## Security Model
+<br>
 
-- Intel encrypted with **AES-256-GCM** before going on-chain
-- Decryption key stored on-chain but **only revealed via event** on purchase
-- **Typed witness pattern** (`DeadDropAuth`) restricts storage unit access
-- **Self-purchase prevention** — can't buy your own intel
-- **Rating window** — buyers must rate within 24 hours
-- On-chain reputation is **immutable and transparent**
+---
+
+<br>
 
 ## License
 
