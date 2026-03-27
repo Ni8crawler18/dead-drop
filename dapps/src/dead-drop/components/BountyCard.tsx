@@ -1,6 +1,8 @@
 import type { Bounty } from "../utils/config";
 
 const STATUS_LABELS: Record<number, string> = { 0: "OPEN", 1: "PENDING", 2: "DONE", 3: "VOID" };
+const ITEM_NAMES: Record<number, string> = { 1: "Fuel Cells", 2: "Data Cores", 446: "Salvage" };
+function itemName(id: number) { return ITEM_NAMES[id] || `Item#${id}`; }
 const STATUS_COLORS: Record<number, string> = { 0: "#ffc312", 1: "#4dabf7", 2: "#39d98a", 3: "#6b7280" };
 
 function abbr(addr: string): string {
@@ -78,7 +80,7 @@ export function BountyCard({ bounty, onClaim }: { bounty: Bounty; onClaim?: (ind
               REWARD
             </div>
             <span style={{ color: "#ffc312", fontWeight: 600 }}>
-              {bounty.rewardQuantity}x <span style={{ opacity: 0.6 }}>Type#{bounty.rewardTypeId}</span>
+              {bounty.rewardQuantity}x <span style={{ opacity: 0.6 }}>{itemName(bounty.rewardTypeId)}</span>
             </span>
           </div>
           <div>

@@ -269,7 +269,7 @@ export function BountyBoardPage() {
               borderRadius: 4, padding: "10px 14px",
               fontFamily: "monospace", color: "#facc15",
             }}>
-              Reward: {selectedBounty.rewardQuantity} x Type#{selectedBounty.rewardTypeId}
+              Reward: {selectedBounty.rewardQuantity} x {selectedBounty.rewardTypeId === 1 ? "Fuel Cells" : selectedBounty.rewardTypeId === 2 ? "Data Cores" : `Item#${selectedBounty.rewardTypeId}`}
             </div>
 
             <div>
