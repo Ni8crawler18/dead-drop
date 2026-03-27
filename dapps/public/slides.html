@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEAD/DROP — Pitch Deck</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Space+Mono:wght@400;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #06080c; color: #d4d2c4; overflow: hidden; height: 100vh; width: 100vw; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .deck { position: relative; width: 100%; height: 100vh; }
+  .slide { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 6vh 8vw; opacity: 0; pointer-events: none; transition: opacity 0.45s ease; }
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  .tag { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: #ff4757; margin-bottom: 1.8rem; }
+  h1 { font-family: 'Space Mono', monospace; font-size: clamp(2.8rem, 5.5vw, 5rem); font-weight: 700; line-height: 1.05; letter-spacing: -0.02em; margin-bottom: 1.5rem; }
+  h2 { font-family: 'Space Mono', monospace; font-size: clamp(2rem, 3.5vw, 3.2rem); font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 1.2rem; }
+  .subtitle { font-size: clamp(1rem, 1.4vw, 1.2rem); color: #6b6b80; line-height: 1.7; max-width: 640px; }
+
+  .grad-red { background: linear-gradient(135deg, #ff4757, #ff6b81); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .grad-green { background: linear-gradient(135deg, #39d98a, #22d3ee); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .grad-yellow { background: linear-gradient(135deg, #ffc312, #ff9f43); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.2rem; }
+
+  .card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 1.8rem; }
+  .card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; }
+  .card p { font-size: 0.8rem; color: #6b6b80; line-height: 1.55; }
+
+  .num-list { margin-top: 1.5rem; }
+  .num-item { display: flex; align-items: flex-start; gap: 1.2rem; padding: 1rem 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .num-item:last-child { border: none; }
+  .num { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 500; color: #ff4757; background: rgba(255,71,87,0.08); width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  .num-item h3 { font-size: 0.88rem; font-weight: 600; margin-bottom: 0.2rem; }
+  .num-item p { font-size: 0.78rem; color: #6b6b80; line-height: 1.5; }
+
+  .pipeline { display: flex; align-items: center; gap: 0; margin-top: 2.5rem; }
+  .pipe-step { flex: 1; padding: 1.2rem 1rem; text-align: center; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); position: relative; }
+  .pipe-step:first-child { border-radius: 12px 0 0 12px; }
+  .pipe-step:last-child { border-radius: 0 12px 12px 0; }
+  .pipe-step h3 { font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem; }
+  .pipe-step p { font-size: 0.65rem; color: #6b6b80; font-family: 'JetBrains Mono', monospace; }
+  .pipe-step::after { content: ''; position: absolute; right: -1px; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-top: 8px solid transparent; border-bottom: 8px solid transparent; border-left: 8px solid rgba(255,71,87,0.3); z-index: 1; }
+  .pipe-step:last-child::after { display: none; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 3.5rem; align-items: start; }
+  .stat { text-align: center; }
+  .stat-value { font-size: clamp(2rem, 3.5vw, 3.5rem); font-weight: 800; letter-spacing: -0.03em; }
+  .stat-label { font-size: 0.65rem; color: #6b6b80; margin-top: 0.3rem; text-transform: uppercase; letter-spacing: 0.12em; font-family: 'JetBrains Mono', monospace; }
+
+  .tags { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1.5rem; }
+  .tag-pill { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; padding: 0.3rem 0.7rem; border-radius: 6px; }
+  .tag-red { color: #ff4757; background: rgba(255,71,87,0.06); border: 1px solid rgba(255,71,87,0.12); }
+  .tag-green { color: #39d98a; background: rgba(57,217,138,0.06); border: 1px solid rgba(57,217,138,0.12); }
+  .tag-yellow { color: #ffc312; background: rgba(255,195,18,0.06); border: 1px solid rgba(255,195,18,0.12); }
+  .tag-blue { color: #4dabf7; background: rgba(77,171,247,0.06); border: 1px solid rgba(77,171,247,0.12); }
+
+  .cta-links { display: flex; gap: 0.8rem; margin-top: 2rem; }
+  .cta-link { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.7rem 1.4rem; border-radius: 10px; font-size: 0.8rem; font-weight: 500; text-decoration: none; transition: all 0.2s; }
+  .cta-primary { background: #ff4757; color: white; }
+  .cta-primary:hover { background: #e63946; }
+  .cta-secondary { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: #d4d2c4; }
+
+  .orb { position: absolute; width: 500px; height: 500px; border-radius: 50%; filter: blur(120px); opacity: 0.08; pointer-events: none; }
+  .orb-red { background: #ff4757; top: -15%; right: -10%; }
+  .orb-green { background: #39d98a; bottom: -20%; left: -10%; }
+
+  .progress { position: fixed; bottom: 0; left: 0; height: 2px; background: linear-gradient(90deg, #ff4757, #39d98a); transition: width 0.4s ease; z-index: 100; }
+  .counter { position: fixed; bottom: 1.5rem; right: 2rem; font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; color: #333; z-index: 100; }
+  .hint { position: fixed; bottom: 1.5rem; left: 2rem; font-size: 0.6rem; color: #333; z-index: 100; }
+  .hint kbd { display: inline-block; padding: 0.1rem 0.35rem; border: 1px solid #2a2a2a; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; }
+
+  /* Crewmate SVG helper */
+  .crewmate { display: inline-block; vertical-align: middle; }
+  .float { animation: float 3s ease-in-out infinite; }
+  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  .walk { animation: walk 0.4s steps(2) infinite; }
+  @keyframes walk { 0% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } 100% { transform: rotate(-3deg); } }
+
+  @media print {
+    body { overflow: visible; height: auto; background: #06080c; }
+    .deck { position: static; height: auto; }
+    .slide { position: static !important; opacity: 1 !important; pointer-events: auto !important; page-break-after: always; min-height: 100vh; padding: 5vh 6vw; }
+    .progress, .counter, .hint { display: none !important; }
+    .orb { display: none; }
+    .grad-red, .grad-green, .grad-yellow { background: none !important; -webkit-text-fill-color: #ff4757 !important; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active" data-slide="0">
+    <div class="orb orb-red"></div>
+    <div class="orb orb-green"></div>
+    <div class="tag">EVE Frontier 2026 &middot; A Toolkit for Civilization</div>
+    <h1>
+      <svg class="crewmate float" width="56" height="56" viewBox="0 0 64 64" fill="none" style="margin-right:12px;">
+        <rect x="3" y="20" width="11" height="24" rx="5.5" fill="#e63946"/>
+        <path d="M14 12 C14 4, 50 4, 50 12 L50 40 C50 44, 48 47, 46 47 L39 47 L39 57 C39 61, 33 61, 33 57 L33 47 L27 47 L27 57 C27 61, 21 61, 21 57 L21 47 L18 47 C15 47, 14 44, 14 40 Z" fill="#e63946"/>
+        <ellipse cx="38" cy="21" rx="12" ry="10" fill="#0a1520"/>
+        <ellipse cx="38" cy="21" rx="11" ry="9" fill="#22d3ee" opacity="0.85"/>
+        <ellipse cx="34" cy="18" rx="5" ry="3.5" fill="white" opacity="0.3"/>
+      </svg>
+      <span class="grad-red">DEAD</span><span style="color:#333;">/</span><span class="grad-green">DROP</span>
+    </h1>
+    <p class="subtitle" style="margin-top:1rem;">
+      The underground intel market for EVE Frontier.<br>
+      Encrypted dead drops. Trustless exchange. On-chain reputation.<br>
+      <span style="color:#ff4757;">Trust no one. Verify everything. Every secret has a price.</span>
+    </p>
+    <div class="tags" style="margin-top:2.5rem;">
+      <span class="tag-pill tag-red">Sui Move</span>
+      <span class="tag-pill tag-green">Smart Storage Units</span>
+      <span class="tag-pill tag-blue">AES-256-GCM</span>
+      <span class="tag-pill tag-yellow">EVE Frontier dApp Kit</span>
+      <span class="tag-pill tag-red">Bounty Board</span>
+      <span class="tag-pill tag-green">On-chain Reputation</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: Problem -->
+  <div class="slide" data-slide="1">
+    <div class="tag">The Problem</div>
+    <h2>In space, information is survival.<br><span class="grad-red">But there's no way to trade it.</span></h2>
+    <div class="two-col" style="margin-top:2rem;">
+      <div class="num-list">
+        <div class="num-item">
+          <div class="num">01</div>
+          <div>
+            <h3>Intel has no marketplace</h3>
+            <p>Scouts discover resource caches, fleet routes, gate vulnerabilities — but have no trustless way to sell this intel to other players.</p>
+          </div>
+        </div>
+        <div class="num-item">
+          <div class="num">02</div>
+          <div>
+            <h3>Trust is the bottleneck</h3>
+            <p>How do you pay for a secret before seeing it? How does a seller prove their intel is real without giving it away?</p>
+          </div>
+        </div>
+        <div class="num-item">
+          <div class="num">03</div>
+          <div>
+            <h3>No accountability</h3>
+            <p>Bad intel wastes fuel, ships, and lives. There's no reputation system to track who sells reliable information.</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="text-align:center; padding:2.5rem; position:relative;">
+          <svg class="crewmate float" width="80" height="80" viewBox="0 0 64 64" fill="none" style="position:absolute; top:-30px; right:20px; opacity:0.3;">
+            <rect x="3" y="20" width="11" height="24" rx="5.5" fill="#ffc312"/>
+            <path d="M14 12 C14 4, 50 4, 50 12 L50 40 C50 44, 48 47, 46 47 L39 47 L39 57 C39 61, 33 61, 33 57 L33 47 L27 47 L27 57 C27 61, 21 61, 21 57 L21 47 L18 47 C15 47, 14 44, 14 40 Z" fill="#ffc312"/>
+            <ellipse cx="38" cy="21" rx="12" ry="10" fill="#0a1520"/>
+            <ellipse cx="38" cy="21" rx="11" ry="9" fill="#22d3ee" opacity="0.85"/>
+          </svg>
+          <div style="font-size:3rem; margin-bottom:1rem;">🤫</div>
+          <div class="stat-value grad-red" style="font-size:2rem;">???</div>
+          <div class="stat-label" style="margin-bottom:2rem;">Resources found, zero way to monetize</div>
+          <div class="stat-value" style="font-size:2rem; color:#39d98a;">0</div>
+          <div class="stat-label" style="margin-bottom:2rem;">Trustless intel markets in EVE Frontier</div>
+          <div class="stat-value" style="font-size:2rem; color:#ffc312;">∞</div>
+          <div class="stat-label">Potential for espionage gameplay</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: Solution -->
+  <div class="slide" data-slide="2">
+    <div class="tag">The Solution</div>
+    <h2>Encrypt. List. Sell. <span class="grad-green">Trustlessly.</span></h2>
+    <p class="subtitle">Dead Drop uses AES-256-GCM encryption + Smart Storage Unit extensions to create a trustless intel marketplace.</p>
+    <div class="pipeline">
+      <div class="pipe-step">
+        <h3>🔐 Encrypt</h3>
+        <p>AES-256-GCM client-side</p>
+      </div>
+      <div class="pipe-step">
+        <h3>📋 List</h3>
+        <p>On-chain with price</p>
+      </div>
+      <div class="pipe-step">
+        <h3>💰 Pay</h3>
+        <p>Items from inventory</p>
+      </div>
+      <div class="pipe-step">
+        <h3>🔑 Reveal</h3>
+        <p>Key via event</p>
+      </div>
+      <div class="pipe-step">
+        <h3>⭐ Rate</h3>
+        <p>On-chain reputation</p>
+      </div>
+    </div>
+    <div class="grid-3" style="margin-top:2rem;">
+      <div class="card">
+        <h3 style="color:#ff4757;">Seller Never Leaks</h3>
+        <p>Intel encrypted before touching the blockchain. Decryption key only revealed in the purchase transaction event. Seller keeps control.</p>
+      </div>
+      <div class="card">
+        <h3 style="color:#39d98a;">Buyer Gets Proof</h3>
+        <p>Payment is atomic — items transfer and key reveals in one transaction. No partial states. No scams.</p>
+      </div>
+      <div class="card">
+        <h3 style="color:#ffc312;">Reputation is Permanent</h3>
+        <p>Buyers rate accuracy within 24h. Provider reputation stored on-chain. Bad actors get flagged. Good agents get trusted.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: How It Works -->
+  <div class="slide" data-slide="3">
+    <div class="tag">Architecture</div>
+    <h2>Smart Storage Units<br>as <span class="grad-green">dead drops</span>
+      <svg class="crewmate walk" width="36" height="36" viewBox="0 0 64 64" fill="none" style="margin-left:12px;">
+        <rect x="3" y="20" width="11" height="24" rx="5.5" fill="#39d98a"/>
+        <path d="M14 12 C14 4, 50 4, 50 12 L50 40 C50 44, 48 47, 46 47 L39 47 L39 57 C39 61, 33 61, 33 57 L33 47 L27 47 L27 57 C27 61, 21 61, 21 57 L21 47 L18 47 C15 47, 14 44, 14 40 Z" fill="#39d98a"/>
+        <ellipse cx="38" cy="21" rx="12" ry="10" fill="#0a1520"/>
+        <ellipse cx="38" cy="21" rx="11" ry="9" fill="#22d3ee" opacity="0.85"/>
+      </svg>
+    </h2>
+    <div class="two-col" style="margin-top:1.5rem;">
+      <div>
+        <div class="num-list">
+          <div class="num-item">
+            <div class="num" style="background:rgba(57,217,138,0.08); color:#39d98a;">01</div>
+            <div>
+              <h3>Typed Witness Pattern</h3>
+              <p><code class="mono" style="color:#39d98a; font-size:0.75rem;">DeadDropAuth</code> registered on Storage Units via <code class="mono" style="color:#39d98a; font-size:0.75rem;">authorize_extension</code>. Only our contract can move items.</p>
+            </div>
+          </div>
+          <div class="num-item">
+            <div class="num" style="background:rgba(57,217,138,0.08); color:#39d98a;">02</div>
+            <div>
+              <h3>Event-Based Key Reveal</h3>
+              <p><code class="mono" style="color:#ffc312; font-size:0.75rem;">IntelPurchased</code> event emitted on purchase containing the AES key. Only the buyer's transaction includes it.</p>
+            </div>
+          </div>
+          <div class="num-item">
+            <div class="num" style="background:rgba(57,217,138,0.08); color:#39d98a;">03</div>
+            <div>
+              <h3>Client-Side Decryption</h3>
+              <p>dApp extracts key from event, decrypts ciphertext using Web Crypto API. Secret displayed instantly. No server involved.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; line-height:2; color:#6b6b80; padding:2rem;">
+          <span style="color:#ff4757;">module</span> dead_drop::<span style="color:#39d98a;">intel_market</span>;<br><br>
+          <span style="color:#6b6b80;">// 3 modules, 20+ functions, 9 events</span><br>
+          <span style="color:#ff4757;">struct</span> <span style="color:#ffc312;">IntelListing</span> { ... }<br>
+          <span style="color:#ff4757;">struct</span> <span style="color:#ffc312;">Reputation</span> { ... }<br>
+          <span style="color:#ff4757;">struct</span> <span style="color:#ffc312;">Bounty</span> { ... }<br><br>
+          <span style="color:#39d98a;">fun</span> purchase_intel&lt;T&gt;() {<br>
+          &nbsp;&nbsp;<span style="color:#6b6b80;">// atomic: pay → reveal key</span><br>
+          &nbsp;&nbsp;event::emit(<span style="color:#ffc312;">IntelPurchased</span> {<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;decryption_key: ...<br>
+          &nbsp;&nbsp;});<br>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Features -->
+  <div class="slide" data-slide="4">
+    <div class="tag">Features</div>
+    <h2>Not just a concept. <span class="grad-yellow">It's live.</span>
+      <svg class="crewmate" width="32" height="32" viewBox="0 0 64 64" fill="none" style="margin-left:8px; animation: float 2s ease-in-out infinite;">
+        <rect x="3" y="20" width="11" height="24" rx="5.5" fill="#ff4757"/>
+        <path d="M14 12 C14 4, 50 4, 50 12 L50 40 C50 44, 48 47, 46 47 L39 47 L39 57 C39 61, 33 61, 33 57 L33 47 L27 47 L27 57 C27 61, 21 61, 21 57 L21 47 L18 47 C15 47, 14 44, 14 40 Z" fill="#ff4757"/>
+        <ellipse cx="38" cy="21" rx="12" ry="10" fill="#0a1520"/>
+        <ellipse cx="38" cy="21" rx="11" ry="9" fill="#22d3ee" opacity="0.85"/>
+      </svg>
+    </h2>
+    <div class="grid-3" style="margin-top:2rem;">
+      <div class="card" style="border-color:rgba(255,71,87,0.15);">
+        <h3 style="color:#ff4757;">🕵️ Intel Marketplace</h3>
+        <p>Browse encrypted listings. Filter by category. Purchase with wallet signature. Decrypted intel displayed instantly.</p>
+      </div>
+      <div class="card" style="border-color:rgba(57,217,138,0.15);">
+        <h3 style="color:#39d98a;">📝 Post Intel</h3>
+        <p>Encrypt your secrets client-side. Set a price. List on-chain. Your intel, your rules. Wallet signs the transaction.</p>
+      </div>
+      <div class="card" style="border-color:rgba(255,195,18,0.15);">
+        <h3 style="color:#ffc312;">🏴‍☠️ Bounty Board</h3>
+        <p>Post bounties for specific intel. Escrow rewards. Anyone can claim. Two-sided information market.</p>
+      </div>
+      <div class="card" style="border-color:rgba(77,171,247,0.15);">
+        <h3 style="color:#4dabf7;">📊 Agent Leaderboard</h3>
+        <p>On-chain reputation scores. Sales stats. Trust ratings. "SUS" badge for low-accuracy providers.</p>
+      </div>
+      <div class="card" style="border-color:rgba(151,117,250,0.15);">
+        <h3 style="color:#9775fa;">🚀 Auto Onboarding</h3>
+        <p>One-click account setup. Serverless API creates character, storage, items, and sends gas. Zero friction.</p>
+      </div>
+      <div class="card" style="border-color:rgba(34,211,238,0.15);">
+        <h3 style="color:#22d3ee;">🎮 Among Us Vibes</h3>
+        <p>Crewmate mascot. Floating stars & asteroids. Space station terminal UI. Draggable walking crewmate. Fun.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Demo -->
+  <div class="slide" data-slide="5">
+    <div class="tag">Live Demo</div>
+    <h2>See it in action
+      <svg class="crewmate walk" width="40" height="40" viewBox="0 0 64 64" fill="none" style="margin-left:8px;">
+        <rect x="3" y="20" width="11" height="24" rx="5.5" fill="#ffc312"/>
+        <path d="M14 12 C14 4, 50 4, 50 12 L50 40 C50 44, 48 47, 46 47 L39 47 L39 57 C39 61, 33 61, 33 57 L33 47 L27 47 L27 57 C27 61, 21 61, 21 57 L21 47 L18 47 C15 47, 14 44, 14 40 Z" fill="#ffc312"/>
+        <ellipse cx="38" cy="21" rx="12" ry="10" fill="#0a1520"/>
+        <ellipse cx="38" cy="21" rx="11" ry="9" fill="#22d3ee" opacity="0.85"/>
+      </svg>
+    </h2>
+    <div class="grid-2" style="margin-top:2rem;">
+      <div>
+        <div class="num-list">
+          <div class="num-item">
+            <div class="num" style="background:rgba(255,71,87,0.08); color:#ff4757;">→</div>
+            <div>
+              <h3>Connect wallet</h3>
+              <p>Slush wallet on Sui testnet. Click "Setup Demo Account" to auto-provision.</p>
+            </div>
+          </div>
+          <div class="num-item">
+            <div class="num" style="background:rgba(57,217,138,0.08); color:#39d98a;">→</div>
+            <div>
+              <h3>Acquire intel</h3>
+              <p>Pick a listing. Sign transaction. Payment transfers atomically. Decryption key revealed.</p>
+            </div>
+          </div>
+          <div class="num-item">
+            <div class="num" style="background:rgba(255,195,18,0.08); color:#ffc312;">→</div>
+            <div>
+              <h3>Read the secret</h3>
+              <p>AES-256 decryption happens in your browser. The classified intel is displayed. Verified on SuiScan.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="text-align:center; padding:3rem; background:rgba(255,71,87,0.03); border-color:rgba(255,71,87,0.15);">
+          <svg class="crewmate float" width="100" height="100" viewBox="0 0 64 64" fill="none">
+            <ellipse cx="32" cy="60" rx="18" ry="3" fill="#e63946" opacity="0.15"/>
+            <rect x="3" y="20" width="11" height="24" rx="5.5" fill="#e63946"/>
+            <path d="M14 12 C14 4, 50 4, 50 12 L50 40 C50 44, 48 47, 46 47 L39 47 L39 57 C39 61, 33 61, 33 57 L33 47 L27 47 L27 57 C27 61, 21 61, 21 57 L21 47 L18 47 C15 47, 14 44, 14 40 Z" fill="#e63946"/>
+            <path d="M14 36 L50 36 L50 40 C50 44, 48 47, 46 47 L18 47 C15 47, 14 44, 14 40 Z" fill="black" opacity="0.15"/>
+            <ellipse cx="38" cy="21" rx="12" ry="10" fill="#0a1520"/>
+            <ellipse cx="38" cy="21" rx="11" ry="9" fill="#22d3ee" opacity="0.85"/>
+            <ellipse cx="34" cy="18" rx="5" ry="3.5" fill="white" opacity="0.3"/>
+          </svg>
+          <div style="margin-top:1.5rem;">
+            <a href="https://deaddrop-intel.vercel.app" target="_blank" class="cta-link cta-primary" style="display:inline-flex;">Try it live →</a>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:#444; margin-top:1rem;">deaddrop-intel.vercel.app</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Security -->
+  <div class="slide" data-slide="6">
+    <div class="tag">Security Model</div>
+    <h2>Trustless by design.
+      <svg class="crewmate" width="28" height="28" viewBox="0 0 64 64" fill="none" style="margin-left:6px; animation: float 2.5s ease-in-out infinite;">
+        <rect x="3" y="20" width="11" height="24" rx="5.5" fill="#9775fa"/>
+        <path d="M14 12 C14 4, 50 4, 50 12 L50 40 C50 44, 48 47, 46 47 L39 47 L39 57 C39 61, 33 61, 33 57 L33 47 L27 47 L27 57 C27 61, 21 61, 21 57 L21 47 L18 47 C15 47, 14 44, 14 40 Z" fill="#9775fa"/>
+        <ellipse cx="38" cy="21" rx="12" ry="10" fill="#0a1520"/>
+        <ellipse cx="38" cy="21" rx="11" ry="9" fill="#22d3ee" opacity="0.85"/>
+      </svg>
+    </h2>
+    <div class="grid-2" style="margin-top:2rem;">
+      <div class="card" style="border-left:2px solid #ff4757;">
+        <h3 style="color:#ff4757;">Encryption</h3>
+        <p>AES-256-GCM — intel encrypted in the browser before going on-chain. Keys never stored in plaintext. Revealed only in purchase events.</p>
+      </div>
+      <div class="card" style="border-left:2px solid #39d98a;">
+        <h3 style="color:#39d98a;">Extension Auth</h3>
+        <p>Typed witness pattern — <code class="mono" style="color:#39d98a;">DeadDropAuth</code> restricts storage unit access. Only our contract can deposit/withdraw.</p>
+      </div>
+      <div class="card" style="border-left:2px solid #ffc312;">
+        <h3 style="color:#ffc312;">Self-Purchase Block</h3>
+        <p>Smart contract prevents buying your own listings. Abort code checked on-chain. No gaming the system.</p>
+      </div>
+      <div class="card" style="border-left:2px solid #4dabf7;">
+        <h3 style="color:#4dabf7;">Rate-Limited API</h3>
+        <p>Onboarding endpoint: 1 request/min per wallet. CORS restricted to dApp domain. Error messages truncated to prevent info leaks.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: CTA -->
+  <div class="slide" data-slide="7">
+    <div class="orb orb-red"></div>
+    <div class="orb orb-green"></div>
+    <div class="tag" style="color:#39d98a;">Get Started</div>
+    <h1>
+      <svg class="crewmate float" width="50" height="50" viewBox="0 0 64 64" fill="none" style="margin-right:10px;">
+        <rect x="3" y="20" width="11" height="24" rx="5.5" fill="#e63946"/>
+        <path d="M14 12 C14 4, 50 4, 50 12 L50 40 C50 44, 48 47, 46 47 L39 47 L39 57 C39 61, 33 61, 33 57 L33 47 L27 47 L27 57 C27 61, 21 61, 21 57 L21 47 L18 47 C15 47, 14 44, 14 40 Z" fill="#e63946"/>
+        <ellipse cx="38" cy="21" rx="12" ry="10" fill="#0a1520"/>
+        <ellipse cx="38" cy="21" rx="11" ry="9" fill="#22d3ee" opacity="0.85"/>
+        <ellipse cx="34" cy="18" rx="5" ry="3.5" fill="white" opacity="0.3"/>
+      </svg>
+      Every secret has a <span class="grad-yellow">price.</span>
+    </h1>
+    <p class="subtitle" style="margin-top:1rem;">
+      Dead Drop is live on Sui testnet. Connect your wallet and start trading intel today.
+    </p>
+    <div class="cta-links" style="margin-top:2.5rem;">
+      <a href="https://deaddrop-intel.vercel.app" target="_blank" class="cta-link cta-primary">🎮 Try Dead Drop</a>
+      <a href="https://github.com/Ni8crawler18/dead-drop" target="_blank" class="cta-link cta-secondary">📦 GitHub</a>
+      <a href="https://suiscan.xyz/testnet/object/0x01e770318f1fe9a184b976532b784367531d5404aaa8f6f4b19e96da65adbf42" target="_blank" class="cta-link cta-secondary">🔍 SuiScan</a>
+    </div>
+    <div class="tags" style="margin-top:3rem;">
+      <span class="tag-pill tag-red">Move Smart Contracts</span>
+      <span class="tag-pill tag-green">AES-256-GCM Encryption</span>
+      <span class="tag-pill tag-yellow">Bounty Board</span>
+      <span class="tag-pill tag-blue">On-chain Reputation</span>
+      <span class="tag-pill tag-red">Auto Onboarding API</span>
+      <span class="tag-pill tag-green">Among Us Vibes</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- Progress bar -->
+<div class="progress" id="progress" style="width:12.5%"></div>
+<div class="counter" id="counter">1 / 8</div>
+<div class="hint"><kbd>←</kbd> <kbd>→</kbd> or click to navigate</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let cur = 0;
+  const total = slides.length;
+
+  function go(n) {
+    slides[cur].classList.remove('active');
+    cur = Math.max(0, Math.min(total - 1, n));
+    slides[cur].classList.add('active');
+    document.getElementById('progress').style.width = ((cur + 1) / total * 100) + '%';
+    document.getElementById('counter').textContent = (cur + 1) + ' / ' + total;
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') go(cur + 1);
+    else if (e.key === 'ArrowLeft') go(cur - 1);
+  });
+
+  document.addEventListener('click', e => {
+    if (e.clientX > window.innerWidth / 2) go(cur + 1);
+    else go(cur - 1);
+  });
+</script>
+
+</body>
+</html>
