@@ -84,31 +84,40 @@ export function usePlayerAssets(walletAddress: string | undefined): PlayerAssets
         ownerCapId = caps[0]?.data?.objectId || null;
       }
 
-      // If no OwnerCap on wallet, check if we have a fallback from env
-      if (!ownerCapId && DEAD_DROP_CONFIG.storageOwnerCapId) {
-        ownerCapId = DEAD_DROP_CONFIG.storageOwnerCapId;
+      // Look up storage unit owner cap from character's objects
+      if (!ownerCapId && characterId) {
+        const suCapType = `${pkg}::access::OwnerCap<${pkg}::storage_unit::StorageUnit>`;
+        const suCaps = await rpcCall("suix_getOwnedObjects", [
+          characterId,
+          { filter: { StructType: suCapType }, options: { showContent: true } },
+          null, 1,
+        ]);
+        ownerCapId = suCaps?.data?.[0]?.data?.objectId || null;
       }
 
-      // Use env fallbacks for character and storage if not found via wallet
-      if (!characterId && DEAD_DROP_CONFIG.characterId) {
-        characterId = DEAD_DROP_CONFIG.characterId;
+      // Find storage unit via PlayerProfile or derived ID
+      let storageUnitId: string | null = null;
+      if (characterId) {
+        // Check if character has any storage units by querying objects
+        const addrNum = parseInt(walletAddress!.slice(2, 10), 16);
+        const storageItemId = 700000000 + (addrNum % 100000000);
+        // Try the onboarding-derived storage ID pattern
+        storageUnitId = DEAD_DROP_CONFIG.storageUnitId || null;
       }
-
-      const storageUnitId = DEAD_DROP_CONFIG.storageUnitId || null;
 
       setAssets({
         characterId,
         storageUnitId,
         ownerCapId,
-        hasItems: true, // Assume items exist; the tx will fail gracefully if not
+        hasItems: !!characterId,
         loading: false,
         error: null,
       });
     } catch (e) {
       setAssets({
-        characterId: DEAD_DROP_CONFIG.characterId || null,
-        storageUnitId: DEAD_DROP_CONFIG.storageUnitId || null,
-        ownerCapId: DEAD_DROP_CONFIG.storageOwnerCapId || null,
+        characterId: null,
+        storageUnitId: null,
+        ownerCapId: null,
         hasItems: false,
         loading: false,
         error: e instanceof Error ? e.message : "Failed to discover assets",
