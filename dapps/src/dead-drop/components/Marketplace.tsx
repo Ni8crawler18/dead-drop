@@ -25,6 +25,8 @@ export function Marketplace() {
   const dAppKit = useDAppKit();
   const account = useCurrentAccount();
   const playerAssets = usePlayerAssets(account?.address);
+  const [ratingStatus, setRatingStatus] = useState<"idle" | "submitting" | "done">("idle");
+  const [ratedPositive, setRatedPositive] = useState<boolean | null>(null);
 
   const filtered =
     filter === "all"
@@ -198,7 +200,34 @@ export function Marketplace() {
     }
   };
 
-  const closeModal = () => setPurchase({ step: "idle" });
+  const closeModal = () => {
+    setPurchase({ step: "idle" });
+    setRatingStatus("idle");
+    setRatedPositive(null);
+  };
+
+  const handleRate = async (positive: boolean) => {
+    if (purchase.step !== "success" || ratingStatus !== "idle") return;
+    setRatingStatus("submitting");
+    try {
+      const tx = new Transaction();
+      tx.moveCall({
+        target: `${DEAD_DROP_CONFIG.packageId}::${MODULES.INTEL_MARKET}::rate_intel`,
+        arguments: [
+          tx.object(DEAD_DROP_CONFIG.registryId),
+          tx.object(DEAD_DROP_CONFIG.configId),
+          tx.pure.u64(purchase.listing.index),
+          tx.pure.bool(positive),
+          tx.object("0x6"),
+        ],
+      });
+      await dAppKit.signAndExecuteTransaction({ transaction: tx });
+      setRatedPositive(positive);
+      setRatingStatus("done");
+    } catch {
+      setRatingStatus("idle");
+    }
+  };
   const activeListing =
     purchase.step !== "idle" ? purchase.listing : null;
 
@@ -651,6 +680,56 @@ export function Marketplace() {
                 </div>
               </div>
             )}
+
+            {/* Rate intel */}
+            <div style={{
+              backgroundColor: "rgba(255,255,255,0.02)",
+              border: "1px solid var(--color-border)",
+              borderRadius: 6, padding: "14px",
+            }}>
+              {ratingStatus === "done" ? (
+                <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12 }}>
+                  <span style={{ color: ratedPositive ? "#39d98a" : "#ff4757" }}>
+                    {ratedPositive ? "👍 Rated accurate" : "👎 Rated inaccurate"} — on-chain
+                  </span>
+                </div>
+              ) : (
+                <div>
+                  <div style={{
+                    fontFamily: "monospace", fontSize: 10, color: "var(--color-text-muted)",
+                    textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10, textAlign: "center",
+                  }}>
+                    Was this intel accurate?
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => handleRate(true)}
+                      disabled={ratingStatus === "submitting"}
+                      style={{
+                        flex: 1, padding: "10px", fontSize: 13, fontFamily: "monospace",
+                        background: "rgba(57, 217, 138, 0.06)", color: "#39d98a",
+                        border: "1px solid rgba(57, 217, 138, 0.2)", borderRadius: 4,
+                        cursor: ratingStatus === "submitting" ? "wait" : "pointer",
+                      }}
+                    >
+                      {ratingStatus === "submitting" ? "..." : "👍 Accurate"}
+                    </button>
+                    <button
+                      onClick={() => handleRate(false)}
+                      disabled={ratingStatus === "submitting"}
+                      style={{
+                        flex: 1, padding: "10px", fontSize: 13, fontFamily: "monospace",
+                        background: "rgba(255, 71, 87, 0.06)", color: "#ff4757",
+                        border: "1px solid rgba(255, 71, 87, 0.2)", borderRadius: 4,
+                        cursor: ratingStatus === "submitting" ? "wait" : "pointer",
+                      }}
+                    >
+                      {ratingStatus === "submitting" ? "..." : "👎 Inaccurate"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <a
               href={`https://suiscan.xyz/testnet/tx/${purchase.txDigest}`}

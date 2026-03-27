@@ -29,3 +29,5 @@ move-contracts/**/build/**/
 # Claude
 .claude/
 .vercel
+.env*.local
+.vercel
