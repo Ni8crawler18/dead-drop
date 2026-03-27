@@ -7,6 +7,7 @@ import { PostIntel } from "./dead-drop/components/PostIntel";
 import { BountyBoardPage } from "./dead-drop/components/BountyBoard";
 import { Leaderboard } from "./dead-drop/components/Leaderboard";
 import { Stars } from "./dead-drop/components/Stars";
+import { WalkingCrewmate } from "./dead-drop/components/WalkingCrewmate";
 
 type Page = "marketplace" | "post" | "bounties" | "leaderboard";
 
@@ -25,6 +26,7 @@ function App() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", position: "relative" }}>
       <Stars />
+      <WalkingCrewmate />
       {/* Header — Security Terminal Bar */}
       <header
         style={{
