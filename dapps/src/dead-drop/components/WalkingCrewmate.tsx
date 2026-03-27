@@ -5,9 +5,9 @@ const COLORS = ["#e63946", "#39d98a", "#ffc312", "#4dabf7", "#9775fa", "#ff6b6b"
 
 export function WalkingCrewmate() {
   const [dragging, setDragging] = useState(false);
-  const [pos, setPos] = useState({ x: -40, y: 0 });
+  const [pos, setPos] = useState({ x: -40, y: window.innerHeight - 70 });
   const [direction, setDirection] = useState<1 | -1>(1); // 1 = right, -1 = left
-  const [color] = useState(() => COLORS[Math.floor(Math.random() * COLORS.length)]);
+  const color = "#e63946";
   const [bobFrame, setBobFrame] = useState(0);
   const animRef = useRef<number>(0);
   const dragOffset = useRef({ x: 0, y: 0 });
@@ -62,19 +62,15 @@ export function WalkingCrewmate() {
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragging) return;
-    const newX = e.clientX - dragOffset.current.x;
-    const newY = e.clientY - dragOffset.current.y;
-    setPos({ x: newX, y: newY });
+    const newX = Math.max(-40, Math.min(window.innerWidth - 10, e.clientX - dragOffset.current.x));
+    setPos((prev) => ({ ...prev, x: newX }));
 
-    // Update direction based on movement
     if (e.movementX > 0) setDirection(1);
     else if (e.movementX < 0) setDirection(-1);
   }, [dragging]);
 
   const handlePointerUp = useCallback(() => {
     setDragging(false);
-    // Snap back to bottom after release
-    setPos((prev) => ({ ...prev, y: 0 }));
   }, []);
 
   // Bob animation (walking bounce)
@@ -89,8 +85,7 @@ export function WalkingCrewmate() {
       onPointerUp={handlePointerUp}
       style={{
         position: "fixed",
-        bottom: pos.y === 0 ? 28 : "auto",
-        top: pos.y !== 0 ? pos.y : "auto",
+        bottom: 28,
         left: pos.x,
         zIndex: 999,
         cursor: dragging ? "grabbing" : "grab",
@@ -101,7 +96,7 @@ export function WalkingCrewmate() {
         filter: dragging ? "drop-shadow(0 4px 12px rgba(0,0,0,0.5))" : "none",
       }}
     >
-      <CrewmateIcon size={32} bodyColor={color} visorColor="#22d3ee" glow={dragging} />
+      <CrewmateIcon size={42} bodyColor={color} visorColor="#22d3ee" glow={dragging} />
     </div>
   );
 }
