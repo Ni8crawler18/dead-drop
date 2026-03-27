@@ -5,7 +5,8 @@ const COLORS = ["#e63946", "#39d98a", "#ffc312", "#4dabf7", "#9775fa", "#ff6b6b"
 
 export function WalkingCrewmate() {
   const [dragging, setDragging] = useState(false);
-  const [pos, setPos] = useState({ x: -40, y: window.innerHeight - 70 });
+  const bottomY = typeof window !== "undefined" ? window.innerHeight - 70 : 700;
+  const [pos, setPos] = useState({ x: -40, y: bottomY });
   const [direction, setDirection] = useState<1 | -1>(1); // 1 = right, -1 = left
   const color = "#e63946";
   const [bobFrame, setBobFrame] = useState(0);
@@ -63,7 +64,8 @@ export function WalkingCrewmate() {
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragging) return;
     const newX = Math.max(-40, Math.min(window.innerWidth - 10, e.clientX - dragOffset.current.x));
-    setPos((prev) => ({ ...prev, x: newX }));
+    const newY = Math.max(0, Math.min(window.innerHeight - 50, e.clientY - dragOffset.current.y));
+    setPos({ x: newX, y: newY });
 
     if (e.movementX > 0) setDirection(1);
     else if (e.movementX < 0) setDirection(-1);
@@ -71,6 +73,8 @@ export function WalkingCrewmate() {
 
   const handlePointerUp = useCallback(() => {
     setDragging(false);
+    // Snap back to bottom
+    setPos((prev) => ({ ...prev, y: window.innerHeight - 70 }));
   }, []);
 
   // Bob animation (walking bounce)
@@ -85,12 +89,12 @@ export function WalkingCrewmate() {
       onPointerUp={handlePointerUp}
       style={{
         position: "fixed",
-        bottom: 28,
+        top: pos.y,
         left: pos.x,
         zIndex: 999,
         cursor: dragging ? "grabbing" : "grab",
         transform: `scaleX(${direction}) translateY(${bobY}px) rotate(${dragging ? "0deg" : `${legTilt}deg`})`,
-        transition: dragging ? "none" : "transform 0.1s ease",
+        transition: dragging ? "none" : "transform 0.1s ease, top 0.4s ease",
         userSelect: "none",
         touchAction: "none",
         filter: dragging ? "drop-shadow(0 4px 12px rgba(0,0,0,0.5))" : "none",
